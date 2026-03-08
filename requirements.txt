@@ -1,0 +1,7 @@
+ultralytics==8.2.0
+opencv-python
+numpy
+pandas
+face_recognition
+scikit-learn
+tqdm

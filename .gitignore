@@ -1,0 +1,22 @@
+# Virtual environment
+yolo_env/
+
+# Dataset
+dataset/
+
+# Generated outputs
+outputs/
+attendance/
+
+# Embeddings
+embeddings/
+
+# Model weights
+models/
+
+# Python
+__pycache__/
+*.pyc
+
+# Videos
+*.mp4
