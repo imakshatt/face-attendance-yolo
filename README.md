@@ -44,6 +44,11 @@ face-attendance-yolo/
 
 ---
 
+## Quick Setup
+
+git clone https://github.com/imakshatt/face-attendance-yolo.git  
+cd face-attendance-yolo  
+
 # Requirements
 
 This project was tested with:
