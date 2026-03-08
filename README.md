@@ -3,35 +3,53 @@
 This project implements a **Face Recognition Based Attendance System** using:
 
 * **YOLOv8** for face detection
-* **Face Recognition (dlib / FaceNet)** for identity matching
+* **Face Recognition (dlib / face_recognition)** for identity matching
 * **Python + OpenCV**
 * **CSV file for attendance storage**
 
-The system detects a student's face from a camera or video file, identifies the student, and records attendance automatically.
+The system detects a student's face from a **camera or video file**, identifies the student, and records attendance automatically.
+
+---
+
+# System Architecture
+
+```
+Camera / Video
+      │
+      ▼
+YOLOv8 Face Detection
+      │
+      ▼
+Face Embedding Extraction
+      │
+      ▼
+Student Database Matching
+      │
+      ▼
+Attendance Marked in CSV
+```
 
 ---
 
 # Project Structure
 
 ```
-face-attendance-yolo/
-│
-├── attendance/
-│   └── attendance.csv
+face-attendance-yolo
 │
 ├── dataset/
 │   ├── 101/
 │   ├── 102/
 │   └── ...
 │
+├── attendance/
+│   └── attendance.csv
+│
 ├── embeddings/
 │   └── student_embeddings.pkl
 │
 ├── models/
-│   └── yolov8n.pt
 │
 ├── outputs/
-│   └── result.mp4
 │
 ├── scripts/
 │   ├── arrange_db.py
@@ -39,19 +57,15 @@ face-attendance-yolo/
 │   └── attendance_system.py
 │
 ├── requirements.txt
+├── setup.sh
 └── README.md
 ```
 
 ---
 
-## Quick Setup
-
-git clone https://github.com/imakshatt/face-attendance-yolo.git  
-cd face-attendance-yolo  
-
 # Requirements
 
-This project was tested with:
+Tested with:
 
 ```
 Python 3.10.20
@@ -60,71 +74,43 @@ Ubuntu / WSL
 
 ---
 
-# Step 1 — Install System Dependencies
+# Quick Setup (Recommended)
 
-This step prevents **dlib / face_recognition build errors**.
+Clone repository:
 
-Run:
-
-```bash
-sudo apt update
-
-sudo apt install -y \
-cmake \
-build-essential \
-libopenblas-dev \
-liblapack-dev \
-libx11-dev \
-libgtk-3-dev \
-python3-dev
 ```
+git clone https://github.com/imakshatt/face-attendance-yolo.git
+cd face-attendance-yolo
+```
+
+Run setup script:
+
+```
+bash setup.sh
+```
+
+This script will automatically:
+
+* install required system dependencies
+* create Python virtual environment
+* install all Python packages
+* prepare required folders
 
 ---
 
-# Step 2 — Create Virtual Environment
+# Activate Environment
 
-Navigate to the project directory:
+Whenever you open a new terminal run:
 
-```bash
-python3 -m venv yolo_env
 ```
-
-Activate environment:
-
-```bash
 source yolo_env/bin/activate
 ```
 
-Upgrade pip:
-
-```bash
-pip install --upgrade pip
-```
-
 ---
 
-# Step 3 — Install Python Dependencies
+# Dataset Format
 
-Install required packages:
-
-```bash
-pip install -r requirements.txt
-```
-
-This will install:
-
-* ultralytics
-* opencv
-* numpy
-* pandas
-* face_recognition
-* scikit-learn
-
----
-
-# Step 4 — Prepare Dataset
-
-Dataset should be organized by **Roll Number**.
+Dataset is organized by **Roll Number**.
 
 Example:
 
@@ -133,74 +119,72 @@ dataset/
     101/
         img1.jpg
         img2.jpg
+
     102/
         img1.jpg
 ```
 
-Each student folder contains multiple face images.
+Each folder represents **one student**.
 
-Recommended: **5–10 images per student**
+Recommended:
+
+```
+5–10 images per student
+```
 
 ---
 
-# Step 5 — Generate Face Embeddings
+# Step 1 — Generate Face Embeddings
 
-Run:
+Convert student images into facial feature vectors.
 
-```bash
+```
 cd scripts
 python create_embeddings.py
 ```
 
-This will generate:
+This creates:
 
 ```
 embeddings/student_embeddings.pkl
 ```
 
-This file contains encoded facial features of all students.
-
 ---
 
-# Step 6 — Run Attendance System
+# Step 2 — Run Attendance System
 
-## Camera Mode (Normal Linux)
+### Camera Mode (Normal Linux)
 
 ```
 python attendance_system.py --mode camera
 ```
 
+This will open the webcam and detect students.
+
 ---
 
-## Video Mode (WSL Compatible)
+### Video Mode (WSL Compatible)
 
 ```
 python attendance_system.py \
 --mode wsl \
---input_video input.mp4 \
---output_video output.mp4
+--input_video ../dataset/output.mp4 \
+--output_video ../outputs/result.mp4
 ```
 
-This will:
+This mode:
 
-1. Process the video
-2. Detect faces
-3. Identify students
-4. Mark attendance
-5. Save processed video
-
-Output:
-
-```
-outputs/result.mp4
-attendance/attendance.csv
-```
+* reads video file
+* processes frames
+* detects faces
+* marks attendance
+* saves processed video
 
 ---
 
-# Attendance File
+# Attendance Output
 
-Attendance is stored in:
+Attendance is saved in:
 
 ```
 attendance/attendance.csv
@@ -223,11 +207,11 @@ Roll_Number,Time
 * CSV attendance logging
 * Duplicate attendance prevention
 * Camera mode
-* WSL video mode
+* WSL video processing mode
 
 ---
 
-# Notes
+# Troubleshooting
 
 If `face_recognition` fails to install:
 
@@ -236,14 +220,23 @@ pip install dlib
 pip install face_recognition
 ```
 
+If OpenCV GUI does not work in WSL, use **video mode** instead.
+
 ---
 
 # Future Improvements
 
-Possible improvements:
+Possible enhancements:
 
-* YOLOv8-face model
-* Multi-face tracking
-* GUI dashboard
-* SQLite attendance database
-* Real-time analytics
+* YOLOv8-face detection model
+* Face tracking for better stability
+* SQLite database instead of CSV
+* Real-time dashboard UI
+* Multi-person detection
+
+---
+
+# Author & Developer
+
+Akshat
+GitHub: https://github.com/imakshatt
