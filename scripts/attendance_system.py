@@ -14,7 +14,7 @@ import os
 parser = argparse.ArgumentParser()
 
 parser.add_argument("--mode",
-                    choices=["camera","wsl"],
+                    choices=["camera", "wsl"],
                     required=True)
 
 parser.add_argument("--input_video",
@@ -30,8 +30,8 @@ args = parser.parse_args()
 # -----------------------------
 # Paths
 # -----------------------------
-EMBEDDINGS_FILE = "../embeddings/student_embeddings.pkl"
-ATTENDANCE_FILE = "../attendance/attendance.csv"
+EMBEDDINGS_FILE = "embeddings/student_embeddings.pkl"
+ATTENDANCE_FILE = "attendance/attendance.csv"
 
 # -----------------------------
 # Load embeddings
@@ -51,29 +51,20 @@ model = YOLO("yolov8n.pt")
 # Video Source
 # -----------------------------
 if args.mode == "camera":
-
     cap = cv2.VideoCapture(0)
     output_writer = None
 
 elif args.mode == "wsl":
-
     if args.input_video is None:
         raise ValueError("Provide --input_video in WSL mode")
 
     cap = cv2.VideoCapture(args.input_video)
-
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
 
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-
-    output_writer = cv2.VideoWriter(
-        args.output_video,
-        fourcc,
-        fps,
-        (width, height)
-    )
+    output_writer = cv2.VideoWriter(args.output_video, fourcc, fps, (width, height))
 
 # -----------------------------
 # Attendance memory
@@ -81,114 +72,94 @@ elif args.mode == "wsl":
 marked_students = set()
 
 if not os.path.exists(ATTENDANCE_FILE):
-    df = pd.DataFrame(columns=["Roll_Number","Time"])
-    df.to_csv(ATTENDANCE_FILE,index=False)
+    df = pd.DataFrame(columns=["Roll_Number", "Time"])
+    df.to_csv(ATTENDANCE_FILE, index=False)
 
 def mark_attendance(roll):
-
     if roll in marked_students:
         return
 
     time_now = datetime.now().strftime("%H:%M:%S")
-
     df = pd.read_csv(ATTENDANCE_FILE)
 
-    new_row = {
-        "Roll_Number": roll,
-        "Time": time_now
-    }
-
-    df = pd.concat([df,pd.DataFrame([new_row])])
-
-    df.to_csv(ATTENDANCE_FILE,index=False)
+    new_row = {"Roll_Number": roll, "Time": time_now}
+    df = pd.concat([df, pd.DataFrame([new_row])])
+    df.to_csv(ATTENDANCE_FILE, index=False)
 
     marked_students.add(roll)
-
-    print("Attendance Marked:",roll)
+    print("Attendance Marked:", roll)
 
 # -----------------------------
 # Main Loop
 # -----------------------------
 while True:
-
     ret, frame = cap.read()
-
     if not ret:
         break
 
     results = model(frame)
 
     for result in results:
-
         boxes = result.boxes.xyxy.cpu().numpy()
 
         for box in boxes:
+            x1, y1, x2, y2 = map(int, box)
 
-            x1,y1,x2,y2 = map(int,box)
+            # Ensure coordinates are within frame
+            x1, y1 = max(0, x1), max(0, y1)
+            x2, y2 = min(frame.shape[1], x2), min(frame.shape[0], y2)
 
-            face = frame[y1:y2,x1:x2]
+            face = frame[y1:y2, x1:x2]
 
-            if face.size == 0:
+            # Skip very small faces
+            if face.shape[0] < 20 or face.shape[1] < 20:
                 continue
 
-            rgb = cv2.cvtColor(face,cv2.COLOR_BGR2RGB)
+            # Convert BGR -> RGB and make contiguous
+            rgb = cv2.cvtColor(np.ascontiguousarray(face), cv2.COLOR_BGR2RGB)
 
+            # Ensure uint8 dtype
+            if rgb.dtype != np.uint8:
+                rgb = (rgb * 255).astype(np.uint8)
+
+            # Compute face encodings
             encodings = face_recognition.face_encodings(rgb)
-
             if len(encodings) == 0:
                 continue
 
             embedding = encodings[0]
 
-            distances = face_recognition.face_distance(
-                known_embeddings,
-                embedding
-            )
-
+            # Compare with known embeddings
+            distances = face_recognition.face_distance(known_embeddings, embedding)
             idx = np.argmin(distances)
             min_dist = distances[idx]
 
             if min_dist < 0.5:
-
                 roll = known_roll_numbers[idx]
-
                 label = f"Roll:{roll}"
-
                 mark_attendance(roll)
-
             else:
                 label = "Unknown"
 
-            cv2.rectangle(frame,(x1,y1),(x2,y2),(0,255,0),2)
-
-            cv2.putText(frame,
-                        label,
-                        (x1,y1-10),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.7,
-                        (0,255,0),
-                        2)
+            # Draw rectangle and label
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            cv2.putText(frame, label, (x1, y1 - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
     # -----------------------------
     # Output behavior
     # -----------------------------
     if args.mode == "camera":
-
-        cv2.imshow("Attendance",frame)
-
+        cv2.imshow("Attendance", frame)
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
-
     elif args.mode == "wsl":
-
         output_writer.write(frame)
 
 # -----------------------------
 # Cleanup
 # -----------------------------
 cap.release()
-
 if output_writer is not None:
     output_writer.release()
-
 cv2.destroyAllWindows()

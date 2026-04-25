@@ -3,8 +3,8 @@ import face_recognition
 import pickle
 from tqdm import tqdm
 
-DATASET_DIR = "../dataset"
-EMBEDDINGS_FILE = "../embeddings/student_embeddings.pkl"
+DATASET_DIR = "dataset"
+EMBEDDINGS_FILE = "embeddings/student_embeddings.pkl"
 
 known_embeddings = []
 known_roll_numbers = []
